@@ -1,69 +1,77 @@
-"""Publishes /moveit_command JSON and waits for /moveit_status response."""
+"""Service client for /moveit/execute (llm_agent_msgs/MoveItExecute).
+
+agent=client, MoveIt Module=server. 명령별 파라미터는 params_json 에
+JSON 직렬화하여 전달한다. call_and_wait()은 ThreadPoolExecutor 워커
+스레드에서 호출되며(스핀 스레드 아님), call_async + future 대기로 동작한다.
+"""
 
 import json
 import threading
-import time
 from typing import Optional
 
 from rclpy.node import Node
-from std_msgs.msg import String
+
+from llm_agent_msgs.srv import MoveItExecute
 
 
 class MoveItClient:
-    """
-    Topic-based interface to the external MoveIt Module.
+    """Synchronous wrapper over the /moveit/execute service."""
 
-    Publishes JSON commands to /moveit_command.
-    Subscribes to /moveit_status for completion feedback.
+    DEFAULT_SERVICE = '/moveit/execute'
 
-    send_and_wait() is a blocking call designed to run inside
-    the ThreadPoolExecutor (not on the ROS2 spin thread).
-    """
+    def __init__(self, node: Node, service_name: str = DEFAULT_SERVICE):
+        self._node = node
+        self._client = node.create_client(MoveItExecute, service_name)
+        self._service_name = service_name
 
-    CMD_TOPIC = '/moveit_command'
-    STATUS_TOPIC = '/moveit_status'
+    def wait_for_server(self, timeout_sec: float = 5.0) -> bool:
+        return self._client.wait_for_service(timeout_sec=timeout_sec)
 
-    def __init__(self, node: Node):
-        self._pub = node.create_publisher(String, self.CMD_TOPIC, 10)
-        self._last_status: Optional[dict] = None
-        self._status_event = threading.Event()
-        self._lock = threading.Lock()
-
-        node.create_subscription(String, self.STATUS_TOPIC, self._status_callback, 10)
-
-    def _status_callback(self, msg: String) -> None:
-        try:
-            data = json.loads(msg.data)
-        except json.JSONDecodeError:
-            return
-        with self._lock:
-            self._last_status = data
-            self._status_event.set()
-
-    def send_and_wait(self, command: dict, timeout_sec: float = 10.0) -> dict:
+    def call_and_wait(
+        self,
+        cmd: str,
+        params: Optional[dict] = None,
+        timeout_sec: float = 10.0,
+    ) -> dict:
         """
-        Publish command and block until /moveit_status received or timeout.
+        Call /moveit/execute and block until the response or timeout.
 
         Returns:
-            {'success': bool, 'error_message': str, ...}
+            {'success': bool, 'error_code': int, 'error_message': str}
         """
-        self._status_event.clear()
-        with self._lock:
-            self._last_status = None
+        if not self._client.service_is_ready():
+            if not self._client.wait_for_service(timeout_sec=min(timeout_sec, 5.0)):
+                return {
+                    'success': False,
+                    'error_code': -1,
+                    'error_message': f'service {self._service_name} unavailable',
+                }
 
-        msg = String()
-        msg.data = json.dumps(command)
-        self._pub.publish(msg)
+        request = MoveItExecute.Request()
+        request.cmd = cmd
+        request.params_json = json.dumps(params or {})
 
-        fired = self._status_event.wait(timeout=timeout_sec)
-        if not fired:
-            return {'success': False, 'error_message': 'moveit_status timeout'}
+        future = self._client.call_async(request)
+        done = threading.Event()
+        future.add_done_callback(lambda _f: done.set())
 
-        with self._lock:
-            return self._last_status or {'success': False, 'error_message': 'empty status'}
+        if not done.wait(timeout=timeout_sec):
+            return {
+                'success': False,
+                'error_code': -1,
+                'error_message': f'service call timeout ({cmd})',
+            }
 
-    def send(self, command: dict) -> None:
-        """Fire-and-forget publish (used for HOME after PLACE)."""
-        msg = String()
-        msg.data = json.dumps(command)
-        self._pub.publish(msg)
+        if future.exception() is not None:
+            return {
+                'success': False,
+                'error_code': -1,
+                'error_message': f'service exception: {future.exception()}',
+            }
+
+        resp = future.result()
+        return {
+            'success': resp.success,
+            'error_code': resp.error_code,
+            'error_message': resp.error_message,
+        }

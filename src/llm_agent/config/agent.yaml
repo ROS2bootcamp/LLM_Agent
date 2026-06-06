@@ -1,5 +1,7 @@
 llm:
-  model: "claude-sonnet-4-6"
+  # Google Gemini (google-genai). API 키는 .env 의 GEMINI_API_KEY 참조.
+  provider: "gemini"
+  model: "gemini-2.5-flash"
   max_tokens: 1024
   retry_count: 3
   retry_backoff_sec: 1.0
@@ -7,6 +9,8 @@ llm:
 scan:
   timeout_sec: 30
   confidence_threshold: 0.7
+  # 같은 class 다중 탐지 시 선택 기준: highest_conf(기본) | nearest
+  selection_policy: "highest_conf"
 
 grip:
   verify_window_sec: 2.0
@@ -16,19 +20,31 @@ grip:
 session:
   max_retry_count: 3
 
+yolo:
+  # ROBOT_VISION 노드 발행 토픽 (JSON: {timestamp_ns, num_detections, objects[]})
+  detection_topic: "/vision/detection_results"
+
 moveit:
-  command_topic: "/moveit_command"
-  status_topic: "/moveit_status"
-  status_timeout_sec: 10.0
-  arm_group_name: "panda_arm"
-  hand_group_name: "hand"
-  hand_frame: "panda_link8"
+  # ROS2 서비스 (agent=client, MoveIt 모듈=server). 계약: llm_agent_msgs/MoveItExecute
+  service_name: "/moveit/execute"
+  service_timeout_sec: 10.0
+  # UR3 + Robotiq 2F-85 (PANDA_ENV ur3_mtc_config.yaml 기준)
+  arm_group_name: "ur_manipulator"
+  eef_name: "robotiq_2f_85"
+  hand_group_name: "gripper"
+  hand_frame: "robotiq_2f_85_tcp"
   hand_open_pose: "open"
   hand_close_pose: "close"
-  arm_home_pose: "ready"
-  grasp_frame_transform: [0.0, 0.0, 0.1, 1.571, 0.785, 1.571]
+  arm_home_pose: "home"
+  grasp_frame_transform: [0.0, 0.0, 0.13, 3.1416, 0.0, 0.0]
+  approach_object_min_dist: 0.08
+  approach_object_max_dist: 0.15
+  lift_object_min_dist: 0.05
+  lift_object_max_dist: 0.15
+  max_solutions: 10
 
 tf:
-  # TODO: confirm camera_frame name with YOLO team
-  camera_frame: "camera_color_optical_frame"
+  # YOLO가 camera_link->base_link 변환 완료한 position_3d_base_frame 사용.
+  # 에이전트는 base_link->world 정적 변환만 수행(보통 identity).
+  base_frame: "base_link"
   world_frame: "world"

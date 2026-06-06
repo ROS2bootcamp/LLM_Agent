@@ -1,0 +1,14 @@
+# LLM Agent → MoveIt Module 명령 서비스 (agent=client, MoveIt=server)
+# cmd 별 파라미터는 params_json 에 JSON 문자열로 직렬화하여 전달.
+#   scan    : {"waypoints": [[x,y,z,r,p,y], ...]}
+#   pick    : {"arm_group_name","hand_frame","object":{...},"grasp_frame_transform":[...], ...}
+#   lift    : {"direction":"z+","distance_m":0.1,"frame":"world"}
+#   place   : {"object_name","target_pose_world":[x,y,z,r,p,y],"place_surface_offset":0.001}
+#   release : {"hand_open_pose":"open"}
+#   home    : {"arm_home_pose":"home"}
+string cmd
+string params_json
+---
+bool   success        # 계획+실행 최종 성공 여부
+int32  error_code     # 0 = SUCCESS, 음수 = 실패 (MoveItErrorCodes 정규화)
+string error_message  # 실패 사유 (성공 시 "")

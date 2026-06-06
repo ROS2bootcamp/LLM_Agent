@@ -13,7 +13,7 @@ setup(
         ('share/' + package_name + '/config', glob('config/*.yaml')),
         ('share/' + package_name + '/launch', glob('launch/*.py')),
     ],
-    install_requires=['setuptools', 'pyyaml', 'anthropic'],
+    install_requires=['setuptools', 'pyyaml', 'google-genai', 'python-dotenv'],
     zip_safe=True,
     maintainer='psj',
     maintainer_email='psj15641@gmail.com',

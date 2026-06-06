@@ -22,6 +22,10 @@ def generate_launch_description():
             'targets_path',
             default_value=os.path.join(share, 'config', 'targets.yaml'),
         ),
+        DeclareLaunchArgument(
+            'objects_path',
+            default_value=os.path.join(share, 'config', 'objects.yaml'),
+        ),
         Node(
             package='llm_agent',
             executable='agent_node',
@@ -31,6 +35,7 @@ def generate_launch_description():
                 'config_path':          LaunchConfiguration('config_path'),
                 'scan_waypoints_path':  LaunchConfiguration('scan_waypoints_path'),
                 'targets_path':         LaunchConfiguration('targets_path'),
+                'objects_path':         LaunchConfiguration('objects_path'),
             }],
         ),
     ])
