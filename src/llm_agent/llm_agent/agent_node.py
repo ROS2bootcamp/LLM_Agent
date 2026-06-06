@@ -130,8 +130,10 @@ class AgentNode(Node):
                 time.sleep(1.0)
 
             # P4
-            self._run_p4(cfg)
-            self._report('세션 완료: Pick & Place 성공.')
+            if self._run_p4(cfg):
+                self._report('세션 완료: Pick & Place 성공.')
+            else:
+                self._report('P4 실패: place에 실패해 오브젝트를 놓지 못했습니다.')
 
         except Exception as e:
             self._report(f'예외 발생으로 세션 종료: {e}')
@@ -283,7 +285,7 @@ class AgentNode(Node):
     # P4 — Place and finish
     # ------------------------------------------------------------------
 
-    def _run_p4(self, cfg: dict) -> None:
+    def _run_p4(self, cfg: dict) -> bool:
         self._pm.transition('P4', reason='pickup verified')
         self._pub_phase()
 
@@ -304,6 +306,13 @@ class AgentNode(Node):
             },
             timeout_sec=timeout,
         )
+        if not place_status.get('success', False):
+            # place 실패: 오브젝트를 쥔 채 release 하면 임의 위치 낙하 → release 생략, HOME 만.
+            self._log(f'P4: place failed: {place_status.get("error_message")}')
+            self._moveit.call_and_wait(
+                'home', {'arm_home_pose': moveit_cfg['arm_home_pose']}, timeout_sec=timeout
+            )
+            return False
         self._log(f'P4: place status={place_status.get("success")}')
 
         self._moveit.call_and_wait(
@@ -312,6 +321,7 @@ class AgentNode(Node):
         self._moveit.call_and_wait(
             'home', {'arm_home_pose': moveit_cfg['arm_home_pose']}, timeout_sec=timeout
         )
+        return True
 
     # ------------------------------------------------------------------
     # LLM calls

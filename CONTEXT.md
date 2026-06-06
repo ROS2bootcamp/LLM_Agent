@@ -186,6 +186,8 @@ python3 -m pytest src/llm_agent/test/ -v -p no:anyio
 ### 잔여 확인 항목 (구현 단계)
 | △ | MoveIt 서비스 서버 | MoveIt팀이 `ur3_pick_place.py`를 `MoveItExecute` 계약 기반 서버로 개조 필요 |
 | △ | base_link↔world 정적변환 실측값 | identity 가정 — UR3 URDF/TF로 확인 필요 |
+| △ | G2: 미사용 인터페이스 | `TaskStatus.msg`/`SetPhase.srv`/`AgentQuery.srv` 빌드되나 미사용(Sprint1 잔재) — 정리 여부 결정 필요 |
+| △ | G3: P2 grip 검증 메트릭 | 설계는 base_frame `z` 근접, 코드는 `distance_m` 사용 — 카메라 장착(이슈 #2)과 연동해 통일 필요 |
 
 > 값들은 `src/llm_agent/config/agent.yaml`, `config/objects.yaml`, `config/targets.yaml`에서 수정 가능
 
@@ -207,7 +209,9 @@ python3 -m pytest src/llm_agent/test/ -v -p no:anyio
 - [ ] S3-2: P2 루프 — base→world 변환 + Object Spec 조회 + PICK 서비스 + grip verify (LLM 없음)
 - [ ] S3-3: P3 루프 — LIFT 서비스 + YOLO 수집 + LLM pickup 판단
 - [ ] S3-4: P4 루프 — PLACE + RELEASE + HOME 서비스 + 세션 종료
-- [ ] S4-1: mock YOLO / mock MoveIt 서비스 서버로 E2E 시나리오 테스트
+- [x] S4-1 (1차): 오케스트레이션 흐름 mock 검증 — `test/test_flow_mock.py` 10 시나리오 통과(ROS 불필요)
+- [x] G1 수정: P4 place 실패가 성공으로 보고되던 버그 → place 성공 검증 + 실패 시 안전 복귀
+- [ ] S4-1 (2차): Linux 워크스페이스 실제 ROS2 E2E — `test/mock_moveit_server.py`+`mock_yolo_publisher.py` (가이드: `MOCK_E2E.md`)
 
 ---
 
