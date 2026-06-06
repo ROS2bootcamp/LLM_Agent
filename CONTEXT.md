@@ -188,11 +188,14 @@ python3 -m pytest src/llm_agent/test/ -v -p no:anyio
 
 ## 다음 작업
 
-### Sprint 2 보완 (인터페이스 갱신 — 선행 필요)
-- [ ] S2-6a: `llm_agent_msgs/srv/MoveItExecute.srv` 정의 + CMakeLists 등록
-- [ ] S2-2: `yolo_subscriber.py` → `/vision/detection_results` + `objects[]`/대문자 키 파싱
-- [ ] S2-3: `tf_transformer.py` → `base_link`→`world` 정적 변환으로 축소
-- [ ] S2-4: `moveit_client.py` → 토픽 발행/구독 → `/moveit/execute` 서비스 client(`call_and_wait`)
+### Sprint 2 보완 (인터페이스 갱신) ✅ 구현 완료
+- [x] S2-6a: `llm_agent_msgs/srv/MoveItExecute.srv` 정의 + CMakeLists 등록
+- [x] S2-2: `yolo_subscriber.py` → `/vision/detection_results` + `objects[]`/대문자 키 파싱
+- [x] S2-3: `tf_transformer.py` → `base_link`→`world` 정적 변환으로 축소
+- [x] S2-4: `moveit_client.py` → `/moveit/execute` 서비스 client(`call_and_wait`)
+- [x] S2-6b: P2 PICK 파라미터 결정론적 조립(`_build_pick_params`) + `objects.yaml` 로딩
+- [x] agent_node 전 Phase 서비스 호출/Object Spec/ base_frame TF 반영
+> 미빌드/미실행 상태(ROS2 환경 필요). 다음: colcon build 후 mock 서버로 S4-1 E2E
 
 ### Sprint 3 — Phase 루프
 - [ ] S3-1: P1 루프 — scan 서비스 호출 + YOLO 탐지 + 타임아웃/retry

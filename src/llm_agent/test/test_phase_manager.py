@@ -61,5 +61,9 @@ class TestReset:
 
 class TestSystemPrompts:
     def test_all_prompts_nonempty(self, pm):
-        for key in ('parse_command', 'generate_pick_params', 'verify_pickup'):
+        for key in ('parse_command', 'verify_pickup'):
             assert pm.system_prompt(key).strip() != ''
+
+    def test_pick_params_prompt_removed(self, pm):
+        # P2 PICK 파라미터 생성은 config-only 결정론 조립으로 대체됨
+        assert pm.system_prompt('generate_pick_params') == ''

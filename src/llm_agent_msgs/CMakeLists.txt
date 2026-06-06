@@ -10,6 +10,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/TaskStatus.msg"
   "srv/SetPhase.srv"
   "srv/AgentQuery.srv"
+  "srv/MoveItExecute.srv"
   DEPENDENCIES builtin_interfaces action_msgs
 )
 

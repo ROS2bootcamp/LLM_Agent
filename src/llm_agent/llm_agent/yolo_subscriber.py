@@ -1,7 +1,27 @@
-"""Subscribes to /obj_data and buffers recent YOLO detection frames."""
+"""Subscribes to /vision/detection_results and buffers recent YOLO frames.
+
+ROBOT_VISION 발행 포맷 (std_msgs/String, JSON):
+    {
+      "timestamp_ns": 1718001234567890,
+      "num_detections": 1,
+      "objects": [
+        {
+          "class_name": "cup",
+          "confidence": 0.892,
+          "center_2d": {"u": 320, "v": 240},
+          "distance_m": 0.452,
+          "position_3d_camera_frame": {"X": 0.12, "Y": -0.04, "Z": 0.45},
+          "position_3d_base_frame":   {"X": 0.40, "Y": 0.10,  "Z": 0.06}
+        }
+      ]
+    }
+좌표 키는 대문자 X/Y/Z. 타겟 좌표는 position_3d_base_frame 사용
+(YOLO가 camera_link->base_link TF 변환 완료한 값).
+"""
 
 import json
 import threading
+import time
 from collections import deque
 from typing import Optional
 
@@ -13,47 +33,60 @@ class YoloSubscriber:
     """
     Maintains a rolling buffer of recent YOLO detection frames.
 
-    Thread-safe. Used by phase loops to query detections without
-    blocking the ROS2 spin thread.
+    Thread-safe. Phase loops query detections without blocking the
+    ROS2 spin thread.
     """
 
-    TOPIC = '/obj_data'
+    DEFAULT_TOPIC = '/vision/detection_results'
 
-    def __init__(self, node: Node, buffer_size: int = 30):
+    def __init__(self, node: Node, topic: str = DEFAULT_TOPIC, buffer_size: int = 60):
         self._lock = threading.Lock()
         self._buffer: deque[dict] = deque(maxlen=buffer_size)
         self._event = threading.Event()
 
-        node.create_subscription(String, self.TOPIC, self._callback, 10)
+        node.create_subscription(String, topic, self._callback, 10)
 
     def _callback(self, msg: String) -> None:
         try:
             data = json.loads(msg.data)
         except json.JSONDecodeError:
             return
+        if not isinstance(data, dict) or 'objects' not in data:
+            return
         with self._lock:
             self._buffer.append(data)
             self._event.set()
 
+    # ------------------------------------------------------------------
+    # Frame access
+    # ------------------------------------------------------------------
+
     def latest(self) -> Optional[dict]:
+        """Return the most recent full frame (wrapper dict), or None."""
         with self._lock:
             return self._buffer[-1] if self._buffer else None
 
     def recent(self, n: int = 10) -> list[dict]:
+        """Return the last n full frames (wrapper dicts) — for P3 LLM input."""
         with self._lock:
             return list(self._buffer)[-n:]
+
+    # ------------------------------------------------------------------
+    # Detection query
+    # ------------------------------------------------------------------
 
     def wait_for_detection(
         self,
         class_name: str,
         confidence_threshold: float,
         timeout_sec: float,
+        max_distance_m: Optional[float] = None,
     ) -> Optional[dict]:
         """
-        Block until a detection matching class_name is received or timeout.
-        Returns the matching frame dict, or None on timeout.
+        Block until an object matching class_name (and optional distance bound)
+        is seen, or timeout. Returns the matching object dict (single detection,
+        with 'timestamp_ns' injected), or None on timeout.
         """
-        import time
         deadline = time.monotonic() + timeout_sec
         while time.monotonic() < deadline:
             remaining = deadline - time.monotonic()
@@ -62,9 +95,31 @@ class YoloSubscriber:
             with self._lock:
                 frames = list(self._buffer)
             for frame in reversed(frames):
-                if (frame.get('class_name') == class_name
-                        and frame.get('confidence', 0.0) >= confidence_threshold):
-                    return frame
+                obj = self._match(frame, class_name, confidence_threshold, max_distance_m)
+                if obj is not None:
+                    return obj
+        return None
+
+    @staticmethod
+    def _match(
+        frame: dict,
+        class_name: str,
+        confidence_threshold: float,
+        max_distance_m: Optional[float],
+    ) -> Optional[dict]:
+        for obj in frame.get('objects', []):
+            if obj.get('class_name') != class_name:
+                continue
+            if obj.get('confidence', 0.0) < confidence_threshold:
+                continue
+            distance = obj.get('distance_m', -1.0)
+            if distance is None or distance <= 0:
+                continue
+            if max_distance_m is not None and distance > max_distance_m:
+                continue
+            result = dict(obj)
+            result['timestamp_ns'] = frame.get('timestamp_ns')
+            return result
         return None
 
     def clear(self) -> None:
