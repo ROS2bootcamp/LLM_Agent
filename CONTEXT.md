@@ -181,6 +181,7 @@ python3 -m pytest src/llm_agent/test/ -v -p no:anyio
 | 6 | MoveIt 연동 | **ROS2 서비스** `/moveit/execute` (agent가 계약 정의, client) | 사용자 확정 |
 | 7 | 다중 탐지 선택 | **최고 confidence** 기본 (`scan.selection_policy`: highest_conf\|nearest) | 사용자 확정 2026-06-07 |
 | 8 | LLM 응답 견고성 | structured output **스키마 강제** + required 키 재검증 (조용한 None 실패 차단) | 사용자 확정 2026-06-07 |
+| 9 | Object Spec 정책 | box 지원(바닥→중심), grasp 전역 고정, 미등록 class `default_spec` 폴백 | 사용자 확정 2026-06-07 |
 
 ### 잔여 확인 항목 (구현 단계)
 | △ | MoveIt 서비스 서버 | MoveIt팀이 `ur3_pick_place.py`를 `MoveItExecute` 계약 기반 서버로 개조 필요 |

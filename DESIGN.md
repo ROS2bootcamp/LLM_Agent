@@ -516,6 +516,7 @@ tf:
 ```yaml
 # YOLO class_name → MTC 충돌물체 shape/dimensions
 # dimensions: cylinder=[height_m, radius_m], box=[x,y,z]
+# z 보정: 두 형상 모두 바닥→중심 (cylinder +height/2, box +z/2)
 objects:
   cup:
     shape: cylinder
@@ -523,8 +524,14 @@ objects:
   bottle:
     shape: cylinder
     dimensions: [0.20, 0.033]
-# 미등록 class는 P2에서 실패 처리 (LLM 추정 안 함)
+# 미등록 class 폴백 spec (null 이면 폴백 비활성 → 즉시 실패)
+default_spec:
+  shape: cylinder
+  dimensions: [0.10, 0.03]
 ```
+> **box 지원·폴백 정책(2026-06-07 결정)**: cylinder·box 모두 바닥→중심 z 보정.
+> grasp_frame_transform 은 전역 고정(`agent.yaml`) 유지. 미등록 class 는 `default_spec` 로 폴백.
+> 실제 대상 오브젝트 목록·실측 치수는 시뮬(Gazebo SDF) 확정 필요 → 별도 이슈.
 
 ### config/scan_waypoints.yaml
 ```yaml
@@ -561,6 +568,8 @@ place_target:
 | 7 | class_name 형식 | YOLOv8 `model.names`(COCO, 공백 가능) | ROBOT_VISION |
 | 8 | 다중 탐지 선택 (非이슈·非MoveIt) | **최고 confidence** 기본(`scan.selection_policy`, nearest 선택 가능) | 사용자 확정 2026-06-07 |
 | 9 | LLM 응답 견고성 (非이슈·非MoveIt) | **structured output 스키마 강제** + required 키 재검증 | 사용자 확정 2026-06-07 |
+| 10 | Object Spec 정책 (非이슈·非MoveIt) | box 지원(바닥→중심 보정), grasp 전역 고정, 미등록 class `default_spec` 폴백 | 사용자 확정 2026-06-07 |
+| △ | Object Spec 대상 목록·실측 치수 | 시뮬(Gazebo SDF) 기준 확정 필요 → 별도 이슈 | — |
 | △ | MoveIt 서비스 서버 구현 | **미완** — MoveIt팀이 `ur3_pick_place.py`를 본 계약 기반 서버로 개조 필요 | — |
 | △ | `base_link`↔`world` 정적 변환 실측값 | identity 가정 — UR3 URDF/TF로 확인 필요 | — |
 

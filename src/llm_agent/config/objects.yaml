@@ -1,10 +1,11 @@
 # Object Spec — YOLO class_name → MTC 충돌물체 shape/dimensions
 # 정책: config 사전 정의만 사용 (LLM 추정 안 함).
-# 미등록 class는 P2에서 실패 처리.
 #
 # dimensions 의미:
 #   cylinder = [height_m, radius_m]
 #   box      = [x_m, y_m, z_m]
+# z 보정: 두 형상 모두 YOLO position 을 바닥으로 보고 중심으로 보정
+#   (cylinder +height/2, box +z/2). 실측은 시뮬 Gazebo SDF 기준으로 확정 필요.
 objects:
   cup:
     shape: cylinder
@@ -12,3 +13,9 @@ objects:
   bottle:
     shape: cylinder
     dimensions: [0.20, 0.033]
+
+# 미등록 class 폴백 spec (보수적 기본값). P2 에서 objects 에 없으면 이 값으로 시도.
+# null 로 두면 폴백 비활성 → 미등록 class 는 즉시 실패.
+default_spec:
+  shape: cylinder
+  dimensions: [0.10, 0.03]

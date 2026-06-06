@@ -195,8 +195,11 @@ class AgentNode(Node):
         # Object Spec 조회 (config 사전 정의만, LLM 추정 없음)
         spec = cfg.get('objects', {}).get(target)
         if spec is None:
-            self._log(f'P2: 미등록 class "{target}" — Object Spec 없음 (config/objects.yaml)')
-            return False
+            spec = cfg.get('default_object_spec')
+            if spec is None:
+                self._log(f'P2: 미등록 class "{target}" — Object Spec 없음 (config/objects.yaml)')
+                return False
+            self._log(f'P2: 미등록 class "{target}" — 기본 spec 폴백 사용 {spec}')
 
         for attempt in range(grip_cfg['retry_count']):
             # 최신 프레임으로 base_frame 좌표 갱신 (최대 1초)
@@ -328,13 +331,16 @@ class AgentNode(Node):
         """PICK params_json 결정론적 조립 (config Object Spec + world pose).
 
         shape/dimensions=config, pose=YOLO base_frame+TF, grasp 파라미터=config.
-        cylinder는 바닥 z를 중심 z로 보정(+height/2).
+        YOLO position 을 바닥으로 보고 중심 z 로 보정
+        (cylinder +height/2, box +z/2).
         """
         shape = spec['shape']
         dims = list(spec['dimensions'])
         z = wz
         if shape == 'cylinder':
             z = wz + dims[0] / 2.0  # 바닥 → 원통 중심
+        elif shape == 'box':
+            z = wz + dims[2] / 2.0  # 바닥 → 박스 중심
 
         return {
             'arm_group_name':  moveit_cfg['arm_group_name'],
@@ -412,7 +418,9 @@ class AgentNode(Node):
         with open(paths['targets']) as f:
             cfg['target_pose'] = yaml.safe_load(f).get('place_target', {})
         with open(paths['objects']) as f:
-            cfg['objects'] = yaml.safe_load(f).get('objects', {})
+            objects_data = yaml.safe_load(f) or {}
+        cfg['objects'] = objects_data.get('objects', {})
+        cfg['default_object_spec'] = objects_data.get('default_spec')
         return cfg
 
 
