@@ -75,17 +75,23 @@ class YoloSubscriber:
     # Detection query
     # ------------------------------------------------------------------
 
+    SELECTION_POLICIES = ('highest_conf', 'nearest')
+
     def wait_for_detection(
         self,
         class_name: str,
         confidence_threshold: float,
         timeout_sec: float,
         max_distance_m: Optional[float] = None,
+        selection_policy: str = 'highest_conf',
     ) -> Optional[dict]:
         """
         Block until an object matching class_name (and optional distance bound)
         is seen, or timeout. Returns the matching object dict (single detection,
         with 'timestamp_ns' injected), or None on timeout.
+
+        같은 class 가 한 프레임에 여러 개면 selection_policy 로 하나를 결정한다:
+        'highest_conf'(기본, 최고 confidence) | 'nearest'(min distance_m).
         """
         deadline = time.monotonic() + timeout_sec
         while time.monotonic() < deadline:
@@ -95,7 +101,10 @@ class YoloSubscriber:
             with self._lock:
                 frames = list(self._buffer)
             for frame in reversed(frames):
-                obj = self._match(frame, class_name, confidence_threshold, max_distance_m)
+                obj = self._match(
+                    frame, class_name, confidence_threshold,
+                    max_distance_m, selection_policy,
+                )
                 if obj is not None:
                     return obj
         return None
@@ -106,7 +115,9 @@ class YoloSubscriber:
         class_name: str,
         confidence_threshold: float,
         max_distance_m: Optional[float],
+        selection_policy: str = 'highest_conf',
     ) -> Optional[dict]:
+        candidates = []
         for obj in frame.get('objects', []):
             if obj.get('class_name') != class_name:
                 continue
@@ -117,10 +128,18 @@ class YoloSubscriber:
                 continue
             if max_distance_m is not None and distance > max_distance_m:
                 continue
-            result = dict(obj)
-            result['timestamp_ns'] = frame.get('timestamp_ns')
-            return result
-        return None
+            candidates.append(obj)
+        if not candidates:
+            return None
+
+        if selection_policy == 'nearest':
+            best = min(candidates, key=lambda o: o.get('distance_m', float('inf')))
+        else:  # 'highest_conf' (default / 미지원 정책 fallback)
+            best = max(candidates, key=lambda o: o.get('confidence', 0.0))
+
+        result = dict(best)
+        result['timestamp_ns'] = frame.get('timestamp_ns')
+        return result
 
     def clear(self) -> None:
         with self._lock:

@@ -1,7 +1,7 @@
 # 작업 컨텍스트 — LLM Agent
 
 > 이 파일은 다른 환경에서 Claude Code 세션을 이어받을 때 참고용으로 사용합니다.  
-> 최종 업데이트: 2026-06-06
+> 최종 업데이트: 2026-06-07
 
 ---
 
@@ -179,6 +179,8 @@ python3 -m pytest src/llm_agent/test/ -v -p no:anyio
 | 4 | camera_frame / TF | YOLO가 camera_link→base_link 변환 완료 → 에이전트는 base_link→world(정적)만 | ROBOT_VISION |
 | 5 | 오브젝트 형상·크기 | **config 사전 정의만** (`config/objects.yaml`) | 사용자 확정 |
 | 6 | MoveIt 연동 | **ROS2 서비스** `/moveit/execute` (agent가 계약 정의, client) | 사용자 확정 |
+| 7 | 다중 탐지 선택 | **최고 confidence** 기본 (`scan.selection_policy`: highest_conf\|nearest) | 사용자 확정 2026-06-07 |
+| 8 | LLM 응답 견고성 | structured output **스키마 강제** + required 키 재검증 (조용한 None 실패 차단) | 사용자 확정 2026-06-07 |
 
 ### 잔여 확인 항목 (구현 단계)
 | △ | MoveIt 서비스 서버 | MoveIt팀이 `ur3_pick_place.py`를 `MoveItExecute` 계약 기반 서버로 개조 필요 |

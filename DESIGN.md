@@ -223,7 +223,9 @@ string error_message
 3. /vision/detection_results 구독 시작
 4. 루프 (최대 30초):
    a. YOLO 수신 프레임의 objects[] 순회:
-      - class_name == target_class_name AND confidence >= CONFIDENCE_THRESHOLD AND distance_m > 0?
+      - class_name == target_class_name AND confidence >= CONFIDENCE_THRESHOLD AND distance_m > 0
+        인 후보 수집
+      - 후보가 여럿이면 selection_policy 로 1개 결정 (highest_conf 기본 / nearest)
         → 탐지 성공, 해당 객체의 position_3d_base_frame 저장
         → P2 전환
    b. 30초 경과 → 타임아웃 처리
@@ -235,7 +237,7 @@ string error_message
 
 **LLM 역할**: 탐지 루프는 결정론적. LLM은 P1 진입 시 CLI 명령에서 `target_class_name` 추출에만 사용.
 
-**파라미터**: `CONFIDENCE_THRESHOLD = 0.7`, `SCAN_TIMEOUT_SEC = 30`, `MAX_RETRY = 3`
+**파라미터**: `CONFIDENCE_THRESHOLD = 0.7`, `SCAN_TIMEOUT_SEC = 30`, `MAX_RETRY = 3`, `selection_policy = highest_conf`(다중 탐지 시 선택 기준)
 
 **출력**: 탐지된 오브젝트의 `position_3d_base_frame` (P2로 전달)
 
@@ -346,6 +348,11 @@ LLM 호출이 필요한 의사결정 지점은 **2곳**이며, 각각 단일 호
 | **Pickup 검증** | P3 | YOLO 프레임 목록 + target_class_name | `{"pickup_success": bool, "reason": str}` |
 
 > P2의 PICK 파라미터 생성은 **config-only 정책**으로 결정론적 조립으로 대체되어 LLM 호출에서 제외됨.
+
+> **응답 스키마 강제(2026-06-07 결정)**: 두 호출 모두 Gemini *structured output*(`response_schema`)으로 형식을 강제하고,
+> 파싱 후 `required` 키 존재 여부를 재검증한다. 키 누락 시 재시도(backoff) 후 실패 처리하여
+> "유효 JSON이지만 필수 키 누락 → 조용한 `None`" 실패를 차단한다.
+> 스키마는 `llm_client.PARSE_COMMAND_SCHEMA`(`target_class_name`), `VERIFY_PICKUP_SCHEMA`(`pickup_success`, `reason`).
 
 ### Phase별 시스템 프롬프트
 
@@ -470,6 +477,7 @@ llm:
 scan:
   timeout_sec: 30
   confidence_threshold: 0.7
+  selection_policy: "highest_conf"   # 다중 탐지 선택: highest_conf | nearest
 
 grip:
   verify_window_sec: 2.0
@@ -551,6 +559,8 @@ place_target:
 | 5 | 오브젝트 형상·크기 | **config 사전 정의만** (`objects.yaml`), LLM 추정 제거 | 사용자 확정 |
 | 6 | MoveIt 연동 방식 | **ROS2 서비스** `/moveit/execute` (agent가 계약 정의, client) | 사용자 확정 |
 | 7 | class_name 형식 | YOLOv8 `model.names`(COCO, 공백 가능) | ROBOT_VISION |
+| 8 | 다중 탐지 선택 (非이슈·非MoveIt) | **최고 confidence** 기본(`scan.selection_policy`, nearest 선택 가능) | 사용자 확정 2026-06-07 |
+| 9 | LLM 응답 견고성 (非이슈·非MoveIt) | **structured output 스키마 강제** + required 키 재검증 | 사용자 확정 2026-06-07 |
 | △ | MoveIt 서비스 서버 구현 | **미완** — MoveIt팀이 `ur3_pick_place.py`를 본 계약 기반 서버로 개조 필요 | — |
 | △ | `base_link`↔`world` 정적 변환 실측값 | identity 가정 — UR3 URDF/TF로 확인 필요 | — |
 

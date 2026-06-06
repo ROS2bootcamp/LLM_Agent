@@ -9,6 +9,8 @@ llm:
 scan:
   timeout_sec: 30
   confidence_threshold: 0.7
+  # 같은 class 다중 탐지 시 선택 기준: highest_conf(기본) | nearest
+  selection_policy: "highest_conf"
 
 grip:
   verify_window_sec: 2.0

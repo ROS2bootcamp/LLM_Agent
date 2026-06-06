@@ -13,6 +13,22 @@ from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types
 
+# 호출 지점별 응답 스키마 (structured output 강제 — 조용한 None 실패 방지).
+# Gemini가 스키마에 맞는 JSON만 반환하도록 강제하고, 파싱 후 required 키도 재검증한다.
+PARSE_COMMAND_SCHEMA = types.Schema(
+    type=types.Type.OBJECT,
+    properties={'target_class_name': types.Schema(type=types.Type.STRING)},
+    required=['target_class_name'],
+)
+VERIFY_PICKUP_SCHEMA = types.Schema(
+    type=types.Type.OBJECT,
+    properties={
+        'pickup_success': types.Schema(type=types.Type.BOOLEAN),
+        'reason': types.Schema(type=types.Type.STRING),
+    },
+    required=['pickup_success', 'reason'],
+)
+
 
 class LLMClient:
     """
@@ -44,11 +60,21 @@ class LLMClient:
         self._max_retry = max_retry
         self._retry_backoff = retry_backoff_sec
 
-    def call(self, system_prompt: str, user_content: str) -> dict:
+    def call(
+        self,
+        system_prompt: str,
+        user_content: str,
+        response_schema: types.Schema | None = None,
+    ) -> dict:
         """
         Call Gemini and return parsed JSON dict.
-        Raises RuntimeError if all retries fail or response is not valid JSON.
+
+        response_schema 가 주어지면 Gemini structured output 으로 형식을 강제하고,
+        파싱 후 schema.required 키 존재 여부를 재검증한다(조용한 None 실패 방지).
+        Raises RuntimeError if all retries fail, response is not valid JSON,
+        or a required key is missing.
         """
+        required = list(response_schema.required or []) if response_schema else []
         last_error = None
         for attempt in range(self._max_retry):
             try:
@@ -60,6 +86,7 @@ class LLMClient:
                         max_output_tokens=self._max_tokens,
                         temperature=0.0,
                         response_mime_type='application/json',
+                        response_schema=response_schema,
                     ),
                 )
                 text = (response.text or '').strip()
@@ -68,8 +95,12 @@ class LLMClient:
                     text = text.split('```')[1]
                     if text.startswith('json'):
                         text = text[4:]
-                return json.loads(text)
-            except (json.JSONDecodeError, genai_errors.APIError) as e:
+                parsed = json.loads(text)
+                missing = [k for k in required if k not in parsed]
+                if missing:
+                    raise ValueError(f'응답에 필수 키 누락: {missing} (received keys={list(parsed)})')
+                return parsed
+            except (json.JSONDecodeError, ValueError, genai_errors.APIError) as e:
                 last_error = e
                 if attempt < self._max_retry - 1:
                     time.sleep(self._retry_backoff * (2 ** attempt))

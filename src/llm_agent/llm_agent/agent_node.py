@@ -16,7 +16,11 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 from llm_agent.cli_reader import CLIReader
-from llm_agent.llm_client import LLMClient
+from llm_agent.llm_client import (
+    LLMClient,
+    PARSE_COMMAND_SCHEMA,
+    VERIFY_PICKUP_SCHEMA,
+)
 from llm_agent.moveit_client import MoveItClient
 from llm_agent.phase_manager import PhaseManager
 from llm_agent.tf_transformer import TFTransformer
@@ -158,6 +162,7 @@ class AgentNode(Node):
             class_name=target,
             confidence_threshold=scan_cfg['confidence_threshold'],
             timeout_sec=scan_cfg['timeout_sec'],
+            selection_policy=scan_cfg.get('selection_policy', 'highest_conf'),
         )
 
         if result is not None:
@@ -199,6 +204,7 @@ class AgentNode(Node):
                 class_name=target,
                 confidence_threshold=cfg['scan']['confidence_threshold'],
                 timeout_sec=1.0,
+                selection_policy=cfg['scan'].get('selection_policy', 'highest_conf'),
             ) or detection
             base = fresh['position_3d_base_frame']
 
@@ -264,6 +270,7 @@ class AgentNode(Node):
                 f'YOLO frames (recent {len(frames)}):\n'
                 + json.dumps(frames, ensure_ascii=False)
             ),
+            response_schema=VERIFY_PICKUP_SCHEMA,
         )
         success = result.get('pickup_success', False)
         self._log(f'P3: pickup_success={success} reason={result.get("reason")}')
@@ -311,6 +318,7 @@ class AgentNode(Node):
         result = self._llm.call(
             system_prompt=self._pm.system_prompt('parse_command'),
             user_content=f'명령: {raw}',
+            response_schema=PARSE_COMMAND_SCHEMA,
         )
         return result.get('target_class_name')
 
