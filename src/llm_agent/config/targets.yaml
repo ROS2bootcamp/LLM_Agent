@@ -1,7 +1,7 @@
 # P4 place target — absolute world frame coordinates
-# TODO: set actual target position
+# PANDA_ENV ur3_mtc_config.yaml place_pose 기준 [0.4, -0.2, 0.0]
 place_target:
-  x: 0.6
+  x: 0.4
   y: -0.2
   z: 0.06
   roll: 0.0

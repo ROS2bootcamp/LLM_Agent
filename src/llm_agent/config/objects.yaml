@@ -1,0 +1,14 @@
+# Object Spec — YOLO class_name → MTC 충돌물체 shape/dimensions
+# 정책: config 사전 정의만 사용 (LLM 추정 안 함).
+# 미등록 class는 P2에서 실패 처리.
+#
+# dimensions 의미:
+#   cylinder = [height_m, radius_m]
+#   box      = [x_m, y_m, z_m]
+objects:
+  cup:
+    shape: cylinder
+    dimensions: [0.12, 0.025]
+  bottle:
+    shape: cylinder
+    dimensions: [0.20, 0.033]
