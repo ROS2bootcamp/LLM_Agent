@@ -25,7 +25,7 @@ CLI로 입력된 자연어 명령("컵 집어")을 받아, 로봇팔 카메라(Y
 |------|------|
 | **Session** | CLI 명령 1회 입력부터 P4 완료(또는 최종 실패 보고)까지의 처리 단위 |
 | **Phase** | Session 내 처리 단계. P1 → P2 → P3 → P4 순서로 진행 |
-| **LLM** | 의사결정을 위임받는 언어 모델(Claude). 명령 파싱·pickup 검증에 사용 |
+| **LLM** | 의사결정을 위임받는 언어 모델(**Google Gemini**). 명령 파싱·pickup 검증에 사용 |
 | **YOLO Node** | 로봇팔 카메라 영상을 분석해 `/vision/detection_results` 토픽을 발행하는 외부 노드 (ROBOT_VISION) |
 | **MoveIt Module** | MoveIt Task Constructor 기반 모션 실행 노드. 본 에이전트가 정의한 **서비스 서버**를 구현 (PANDA_ENV 개조) |
 | **World Frame** | MoveIt 계획의 기준 좌표계 (`world`) |
@@ -393,7 +393,7 @@ WorkspaceLLMagent/
 │   │   │   ├── __init__.py
 │   │   │   ├── agent_node.py          # ROS2 Node, Phase 루프 관리
 │   │   │   ├── phase_manager.py       # Phase 상태머신
-│   │   │   ├── llm_client.py          # Anthropic API (단일 호출)
+│   │   │   ├── llm_client.py          # Gemini API (google-genai, 단일 호출)
 │   │   │   ├── cli_reader.py          # stdin 명령 수신
 │   │   │   ├── tf_transformer.py      # base_link → world 정적 변환 (축소)
 │   │   │   ├── yolo_subscriber.py     # /vision/detection_results 구독 + 프레임 버퍼
@@ -448,7 +448,8 @@ WorkspaceLLMagent/
 - `call_and_wait(cmd, params_dict, timeout)` → `{success, error_code, error_message}`
 
 ### LLMClient (llm_client.py)
-- Anthropic SDK 동기 호출, tool use 없이 JSON 응답 파싱, 3회 retry(backoff)
+- Google Gen AI SDK(`google-genai`) 동기 호출, tool use 없이 JSON 응답 파싱(`response_mime_type=application/json`), 3회 retry(backoff)
+- API 키는 `.env` 의 `GEMINI_API_KEY` 참조(`python-dotenv`), 모델/토큰은 config 주입
 
 ### CLIReader (cli_reader.py)
 - daemon 스레드에서 `sys.stdin.readline()` 대기 → queue로 AgentNode 전달
@@ -460,7 +461,8 @@ WorkspaceLLMagent/
 ### config/agent.yaml
 ```yaml
 llm:
-  model: "claude-sonnet-4-6"
+  provider: "gemini"
+  model: "gemini-2.5-flash"      # google-genai, .env GEMINI_API_KEY
   max_tokens: 1024
   retry_count: 3
   retry_backoff_sec: 1.0

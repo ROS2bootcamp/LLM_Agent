@@ -41,7 +41,7 @@ src/
     │   ├── __init__.py
     │   ├── agent_node.py        ← 메인 노드 (Phase 루프 전체 구현)
     │   ├── phase_manager.py     ← Phase 상태머신 + retry counter
-    │   ├── llm_client.py        ← Anthropic API (JSON 응답, no tool use)
+    │   ├── llm_client.py        ← Gemini API (google-genai, .env, JSON 응답, no tool use)
     │   ├── yolo_subscriber.py   ← /vision/detection_results 구독 (objects[] 파싱) ⚠️수정
     │   ├── tf_transformer.py    ← base_link → world 정적 변환 ⚠️수정(축소)
     │   ├── moveit_client.py     ← /moveit/execute 서비스 client ⚠️수정
@@ -153,11 +153,13 @@ source install/setup.bash
 
 ### 실행
 ```bash
-export ANTHROPIC_API_KEY=<your_key>
+# API 키는 .env 파일로 관리 (export 불필요)
+cp .env.example .env && ${EDITOR:-nano} .env   # GEMINI_API_KEY=<your_key> 입력
 source /opt/ros/humble/setup.bash
 source ~/WorkspaceLLMagent/install/setup.bash
 ros2 launch llm_agent agent.launch.py
 ```
+> `.env` 는 실행 시 CWD/상위 디렉터리에서 자동 탐색(python-dotenv). 보통 워크스페이스 루트에 둠.
 
 ### 테스트
 ```bash

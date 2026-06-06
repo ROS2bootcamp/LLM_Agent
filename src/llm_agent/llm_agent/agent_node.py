@@ -48,6 +48,8 @@ class AgentNode(Node):
         )
         self._moveit = MoveItClient(self, service_name=cfg['moveit']['service_name'])
         self._llm    = LLMClient(
+            model=cfg['llm']['model'],
+            max_tokens=cfg['llm']['max_tokens'],
             max_retry=cfg['llm']['retry_count'],
             retry_backoff_sec=cfg['llm']['retry_backoff_sec'],
         )

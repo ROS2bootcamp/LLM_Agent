@@ -1,5 +1,7 @@
 llm:
-  model: "claude-sonnet-4-6"
+  # Google Gemini (google-genai). API 키는 .env 의 GEMINI_API_KEY 참조.
+  provider: "gemini"
+  model: "gemini-2.5-flash"
   max_tokens: 1024
   retry_count: 3
   retry_backoff_sec: 1.0
