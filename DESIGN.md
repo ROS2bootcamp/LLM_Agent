@@ -266,9 +266,11 @@ string error_message
 
 6. Grip 검증 (YOLO):
    - /vision/detection_results 구독, GRIP_VERIFY_WINDOW_SEC 내 프레임 확인
-   - class_name 매칭 AND position_3d_base_frame 기준 gripper 근접(z < GRIP_DISTANCE_THRESHOLD)?
+   - class_name 매칭 AND gripper 근접(잠정: distance_m < GRIP_DISTANCE_THRESHOLD)?
      → grip 성공 → P3 전환
    - 불만족 → grip 실패
+   - ⚠️ 근접 메트릭은 카메라 장착 형태(이슈 #2)에 종속 — 잠정 distance_m 사용,
+     #2 확정 후 메트릭 재정의(eye-in-hand=distance_m / 고정=TCP↔객체 거리)
 
 7. grip 실패 시:
    - session_retry_count += 1
@@ -313,7 +315,7 @@ PICK params_json 의 object.pose_world
    - <= 3 → P1 재시작 / > 3 → 최종 실패 보고
 ```
 
-**LLM 판단 기준**: target_class_name이 윈도우 내 감지됐는가 / position_3d_base_frame 기준 gripper 근접 / confidence >= 임계값.
+**LLM 판단 기준**: target_class_name이 윈도우 내 감지됐는가 / gripper 근접(잠정 distance_m, 이슈 #2 종속 → G3) / confidence >= 임계값.
 
 **LLM 역할**: YOLO 프레임 목록을 분석해 pickup 성공 여부를 자연어 근거와 함께 판단.
 
@@ -413,15 +415,13 @@ WorkspaceLLMagent/
 │   │   ├── launch/agent.launch.py
 │   │   ├── test/
 │   │   │   ├── test_phase_manager.py
-│   │   │   └── test_tf_transformer.py
+│   │   │   ├── test_flow_mock.py       # ROS 없이 Phase 흐름 mock 검증
+│   │   │   ├── mock_moveit_server.py   # E2E용 mock /moveit/execute 서버
+│   │   │   └── mock_yolo_publisher.py  # E2E용 mock YOLO 발행기
 │   │   ├── package.xml / setup.py / setup.cfg
 │   │
 │   └── llm_agent_msgs/
-│       ├── msg/TaskStatus.msg
-│       ├── srv/
-│       │   ├── SetPhase.srv
-│       │   ├── AgentQuery.srv
-│       │   └── MoveItExecute.srv     # ★ 신규: MoveIt 명령 서비스 계약
+│       ├── srv/MoveItExecute.srv     # MoveIt 명령 서비스 계약 (유일 인터페이스)
 │       ├── package.xml / CMakeLists.txt
 │
 └── DESIGN.md

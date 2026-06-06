@@ -1,5 +1,0 @@
-string query_type
----
-string phase
-string state_json
-string[] history

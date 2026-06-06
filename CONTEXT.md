@@ -30,8 +30,7 @@ src/
 ├── llm_agent_msgs/          ← ROS2 커스텀 메시지 패키지 (C++, ament_cmake)
 │   ├── CMakeLists.txt
 │   ├── package.xml
-│   ├── msg/TaskStatus.msg
-│   └── srv/SetPhase.srv, AgentQuery.srv, MoveItExecute.srv ★신규
+│   └── srv/MoveItExecute.srv   ← 유일 인터페이스 (미사용 msg/srv G2로 제거)
 │
 └── llm_agent/               ← 메인 에이전트 패키지 (Python, ament_python)
     ├── package.xml
@@ -186,8 +185,8 @@ python3 -m pytest src/llm_agent/test/ -v -p no:anyio
 ### 잔여 확인 항목 (구현 단계)
 | △ | MoveIt 서비스 서버 | MoveIt팀이 `ur3_pick_place.py`를 `MoveItExecute` 계약 기반 서버로 개조 필요 |
 | △ | base_link↔world 정적변환 실측값 | identity 가정 — UR3 URDF/TF로 확인 필요 |
-| △ | G2: 미사용 인터페이스 | `TaskStatus.msg`/`SetPhase.srv`/`AgentQuery.srv` 빌드되나 미사용(Sprint1 잔재) — 정리 여부 결정 필요 |
-| △ | G3: P2 grip 검증 메트릭 | 설계는 base_frame `z` 근접, 코드는 `distance_m` 사용 — 카메라 장착(이슈 #2)과 연동해 통일 필요 |
+| ✅ | G2: 미사용 인터페이스 | 제거 완료 — `TaskStatus.msg`/`SetPhase.srv`/`AgentQuery.srv` + action_msgs/builtin_interfaces 의존 삭제, `MoveItExecute.srv`만 유지 |
+| △ | G3: P2 grip 검증 메트릭 | distance_m 잠정 유지. 메트릭은 **이슈 #2(카메라 장착) 해소 후 확정** — 후속 체크리스트는 이슈 #2 본문에 기록 |
 
 > 값들은 `src/llm_agent/config/agent.yaml`, `config/objects.yaml`, `config/targets.yaml`에서 수정 가능
 
