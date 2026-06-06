@@ -1,0 +1,34 @@
+llm:
+  model: "claude-sonnet-4-6"
+  max_tokens: 1024
+  retry_count: 3
+  retry_backoff_sec: 1.0
+
+scan:
+  timeout_sec: 30
+  confidence_threshold: 0.7
+
+grip:
+  verify_window_sec: 2.0
+  distance_threshold_m: 0.15
+  retry_count: 3
+
+session:
+  max_retry_count: 3
+
+moveit:
+  command_topic: "/moveit_command"
+  status_topic: "/moveit_status"
+  status_timeout_sec: 10.0
+  arm_group_name: "panda_arm"
+  hand_group_name: "hand"
+  hand_frame: "panda_link8"
+  hand_open_pose: "open"
+  hand_close_pose: "close"
+  arm_home_pose: "ready"
+  grasp_frame_transform: [0.0, 0.0, 0.1, 1.571, 0.785, 1.571]
+
+tf:
+  # TODO: confirm camera_frame name with YOLO team
+  camera_frame: "camera_color_optical_frame"
+  world_frame: "world"

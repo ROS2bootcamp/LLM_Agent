@@ -1,0 +1,6 @@
+string target_phase
+string reason
+---
+bool success
+string current_phase
+string message

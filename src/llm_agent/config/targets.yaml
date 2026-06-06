@@ -1,0 +1,9 @@
+# P4 place target — absolute world frame coordinates
+# TODO: set actual target position
+place_target:
+  x: 0.6
+  y: -0.2
+  z: 0.06
+  roll: 0.0
+  pitch: 0.0
+  yaw: 0.0
