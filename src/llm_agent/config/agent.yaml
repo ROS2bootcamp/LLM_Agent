@@ -32,11 +32,11 @@ moveit:
   arm_group_name: "ur_manipulator"
   eef_name: "robotiq_2f_85"
   hand_group_name: "gripper"
-  hand_frame: "robotiq_2f_85_tcp"
+  hand_frame: "robotiq_85_tcp"
   hand_open_pose: "open"
   hand_close_pose: "close"
   arm_home_pose: "home"
-  grasp_frame_transform: [0.0, 0.0, 0.13, 3.1416, 0.0, 0.0]
+  grasp_frame_transform: [0.0, 0.0, 0.0, 3.1416, 0.0, 0.0]
   approach_object_min_dist: 0.08
   approach_object_max_dist: 0.15
   lift_object_min_dist: 0.05
