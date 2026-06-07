@@ -1,9 +1,11 @@
-# P4 place target — absolute world frame coordinates
-# PANDA_ENV ur3_mtc_config.yaml place_pose 기준 [0.4, -0.2, 0.0]
+# P4 place target — absolute world frame coordinates (base_link = world)
+# Pick source: shelf at x=0.55, shelf surface z=0.34 m, can center z≈0.42 m
+# Place target: floor-level drop zone at arm-reachable position (x=0.4, y=-0.2)
+#   z=0.08 m = can half-height (0.075) + small clearance → bottom just above floor
 place_target:
   x: 0.4
   y: -0.2
-  z: 0.06
+  z: 0.08
   roll: 0.0
   pitch: 0.0
   yaw: 0.0
