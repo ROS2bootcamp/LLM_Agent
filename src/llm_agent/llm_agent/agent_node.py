@@ -346,11 +346,15 @@ class AgentNode(Node):
         """
         shape = spec['shape']
         dims = list(spec['dimensions'])
+        # YOLO position_3d_base_frame Z ≈ object centre (camera sees the near surface
+        # at the bounding-box centre height).  grasp_planner and scene_manager both
+        # expect FLOOR z and add height/2 internally, so subtract height/2 here to
+        # convert YOLO centre-z back to floor-z.
         z = wz
         if shape == 'cylinder':
-            z = wz + dims[0] / 2.0  # 바닥 → 원통 중심
+            z = wz - dims[0] / 2.0  # YOLO centre → floor z for grasp_planner
         elif shape == 'box':
-            z = wz + dims[2] / 2.0  # 바닥 → 박스 중심
+            z = wz - dims[2] / 2.0  # YOLO centre → floor z for grasp_planner
 
         return {
             'arm_group_name':  moveit_cfg['arm_group_name'],
@@ -365,11 +369,11 @@ class AgentNode(Node):
                 'dimensions': dims,
                 'pose_world': [wx, wy, z, 0.0, 0.0, 0.0],
             },
-            'grasp_frame_transform':    moveit_cfg['grasp_frame_transform'],
-            'approach_object_min_dist': moveit_cfg['approach_object_min_dist'],
-            'approach_object_max_dist': moveit_cfg['approach_object_max_dist'],
-            'lift_object_min_dist':     moveit_cfg['lift_object_min_dist'],
-            'lift_object_max_dist':     moveit_cfg['lift_object_max_dist'],
+            'grasp_frame_transform': moveit_cfg['grasp_frame_transform'],
+            'approach_min_dist':     moveit_cfg['approach_min_dist'],
+            'approach_max_dist':     moveit_cfg['approach_max_dist'],
+            'lift_min_dist':         moveit_cfg['lift_min_dist'],
+            'lift_max_dist':         moveit_cfg['lift_max_dist'],
             'max_solutions':            moveit_cfg['max_solutions'],
         }
 

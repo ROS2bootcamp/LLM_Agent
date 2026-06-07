@@ -128,6 +128,11 @@ class YoloSubscriber:
                 continue
             if max_distance_m is not None and distance > max_distance_m:
                 continue
+            # D9: reject objects whose base_link coordinates could not be computed
+            # (TF lookup failed in ROBOT_VISION — guard before P2 uses them).
+            base = obj.get('position_3d_base_frame') or {}
+            if base.get('X') is None:
+                continue
             candidates.append(obj)
         if not candidates:
             return None
