@@ -37,10 +37,10 @@ moveit:
   hand_close_pose: "close"
   arm_home_pose: "home"
   grasp_frame_transform: [0.0, 0.0, 0.0, 3.1416, 0.0, 0.0]
-  approach_object_min_dist: 0.08
-  approach_object_max_dist: 0.15
-  lift_object_min_dist: 0.05
-  lift_object_max_dist: 0.15
+  approach_min_dist: 0.08
+  approach_max_dist: 0.15
+  lift_min_dist: 0.05
+  lift_max_dist: 0.15
   max_solutions: 10
 
 tf:
